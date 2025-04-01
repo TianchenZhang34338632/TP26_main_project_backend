@@ -25,20 +25,26 @@ SECRET_KEY = 'django-insecure-7cf8yv*4-=4*=&(13bcl0xk=i%zx-7hrqzew)21ne%pep+jz84
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',  # Add DRF
+    'corsheaders',  # Add CORS
+    'myapp',  # Add app
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # corsheaders
+    'django.middleware.security.SecurityMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -47,6 +53,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Configuring CORS（development phase）
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all cross-domain requests (development only)
+
+# Configure allowed domains on demand (production phase)
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:8080",  # Vue Development Server Default Port
+#     "https://your-production-domain.com",
+# ]
 
 ROOT_URLCONF = 'TP26_main_project_backend.urls'
 
