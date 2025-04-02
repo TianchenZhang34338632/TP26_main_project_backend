@@ -2,11 +2,7 @@
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import PositionDetail  # 导入模型
-from .models import UVData
-from .models import ProcessedAvgMonthlyUV
-from typing import Iterable
-from django.db.models import QuerySet
+from .models import PositionDetail  # import model
 
 
 @api_view(['GET'])
