@@ -90,8 +90,12 @@ WSGI_APPLICATION = 'TP26_main_project_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'TP26',                      # 数据库名
+        'USER': 'test1111111',               # 用户名
+        'PASSWORD': '12345',                 # 密码
+        'HOST': 'tp26on.cv0kqc6qy08k.ap-southeast-2.rds.amazonaws.com',  # RDS主机地址
+        'PORT': '3306',                      # 默认MySQL端口
     }
 }
 
