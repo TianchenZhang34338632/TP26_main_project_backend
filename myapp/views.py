@@ -8,6 +8,33 @@ from django.http import JsonResponse
 from django.db import connection
 from math import radians, cos, sin, asin, sqrt
 import pandas as pd
+from shapely.wkt import loads as load_wkt
+from shapely.geometry import Point
+
+
+@api_view(['GET'])
+def get_postcode_by_coordinate(request):
+    try:
+        lat = float(request.GET.get('lat'))
+        lng = float(request.GET.get('lng'))
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Invalid coordinates'}, status=400)
+
+    user_point = Point(lng, lat)
+
+    for area in VicPostcodeScore.objects.all():
+        try:
+            polygon = load_wkt(area.geometry)
+            if polygon.contains(user_point):
+                return JsonResponse({
+                    'postcode': area.postcode,
+                    'traffic_score': area.traffic_score
+                })
+        except Exception as e:
+            continue
+
+    return JsonResponse({'error': 'No matching area found'}, status=404)
+
 
 
 def haversine(lat1, lon1, lat2, lon2):
