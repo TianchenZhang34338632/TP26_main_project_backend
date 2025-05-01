@@ -70,3 +70,15 @@ class UVData(models.Model):
 
     def __str__(self):
         return f"{self.date_time} - UV {self.uv_index}"
+
+class Facility(models.Model):
+    ftype = models.CharField(max_length=100)
+    featsubtyp = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
+    name_label = models.CharField(max_length=200)
+    state = models.CharField(max_length=10)
+    longitude = models.FloatField()
+    latitude = models.FloatField()
+    class Meta:
+        db_table = 'facilities'
+        managed = False

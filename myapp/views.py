@@ -11,11 +11,12 @@ import pandas as pd
 from shapely.wkt import loads as load_wkt
 from shapely.geometry import Point
 from .models import UVData
-from django.db.models import Avg
 import datetime
 from django.db.models.functions import TruncDate
 from django.db.models import Max
 from .models import VicCrimeScore
+from .models import Facility
+
 @api_view(['GET'])
 def get_postcode_by_coordinate(request):
     try:
@@ -178,3 +179,37 @@ def get_uv_index_by_year(request):
     ]
 
     return JsonResponse({'year': year, 'daily_max_uv': results})
+
+@api_view(['GET'])
+def facilities_by_postcode(request):
+    postcode = request.GET.get('postcode')
+    if not postcode:
+        return JsonResponse({"error": "postcode is required"}, status=400)
+
+    try:
+        area = VicPostcodeScore.objects.get(postcode=postcode)
+        polygon = load_wkt(area.geometry)
+    except VicPostcodeScore.DoesNotExist:
+        return JsonResponse({"error": "Postcode not found."}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": f"Invalid geometry: {e}"}, status=500)
+
+    facilities = Facility.objects.filter(
+        longitude__isnull=False, latitude__isnull=False
+    )
+
+    result = []
+    for f in facilities:
+        try:
+            point = Point(f.longitude, f.latitude)
+            if polygon.contains(point):
+                result.append({
+                    "name": str(f.name),
+                    "type": str(f.ftype),
+                    "subtype": str(f.featsubtyp),
+                    "longitude": float(f.longitude),
+                    "latitude": float(f.latitude)
+                })
+        except:
+            continue
+    return JsonResponse(result, safe=False)
