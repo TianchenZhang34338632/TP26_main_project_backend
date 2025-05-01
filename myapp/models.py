@@ -41,3 +41,16 @@ class VicPostcodeScore(models.Model):
         auto_created = True
         # Prevent Django from adding default sorting
         ordering = []
+
+class UVData(models.Model):
+    date_time = models.DateTimeField()
+    lat = models.FloatField()
+    lon = models.FloatField()
+    uv_index = models.FloatField()
+
+    class Meta:
+        db_table = 'uv_data'
+        managed = False
+
+    def __str__(self):
+        return f"{self.date_time} - UV {self.uv_index}"
