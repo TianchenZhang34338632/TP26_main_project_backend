@@ -50,6 +50,7 @@ class VicCrimeScore(models.Model):
     Severe_Offence_Rate = models.FloatField()
     Composite_Score = models.FloatField()
     Crime_Score = models.IntegerField()
+    Facility_Count = models.IntegerField()
     class Meta:
         db_table = 'vic_crime_score'
         managed = False
