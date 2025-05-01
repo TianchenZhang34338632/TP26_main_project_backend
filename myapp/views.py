@@ -92,6 +92,20 @@ def fetch_accident_data():
     df = pd.DataFrame(data)
     return df
 
+
+def get_postcode_for_point(lat, lng):
+    """Returns the corresponding postcode based on the coordinates"""
+    point = Point(lng, lat)
+    for area in VicPostcodeScore.objects.all():
+        try:
+            polygon = load_wkt(area.geometry)
+            if polygon.contains(point):
+                return area.postcode
+        except:
+            continue
+    return None
+
+
 @api_view(['GET'])
 def analyze_accidents(request):
     """Analyzing accident data in the vicinity of the coordinates"""
@@ -119,9 +133,13 @@ def analyze_accidents(request):
             )
             nearby = accident_df[accident_df['distance'] <= radius]
 
+
+            postcode = get_postcode_for_point(lat, lon)
+
             # Statistical indicators
             stats = {
                 "coordinate": {"latitude": lat, "longitude": lon},
+                "postcode": postcode,
                 "total_accidents": len(nearby),
                 "serious_accidents": len(nearby[nearby["SEVERITY"] == 1]),
                 "total_deaths": int(nearby["NO_PERSONS_KILLED"].sum()),
