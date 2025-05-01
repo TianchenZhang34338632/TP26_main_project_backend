@@ -10,7 +10,11 @@ from math import radians, cos, sin, asin, sqrt
 import pandas as pd
 from shapely.wkt import loads as load_wkt
 from shapely.geometry import Point
-
+from .models import UVData
+from django.db.models import Avg
+import datetime
+from django.db.models.functions import TruncDate
+from django.db.models import Max
 
 @api_view(['GET'])
 def get_postcode_by_coordinate(request):
@@ -142,3 +146,29 @@ def get_nearby_accidents(request):
             nearby_data.append(accident)
 
     return JsonResponse({'data': nearby_data})
+
+@api_view(['GET'])
+def get_uv_index_by_year(request):
+    try:
+        year = int(request.GET.get('year'))
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Invalid or missing year'}, status=400)
+
+    start_date = datetime.datetime(year, 1, 1)
+    end_date = datetime.datetime(year + 1, 1, 1)
+
+    uv_data = (
+        UVData.objects
+        .filter(date_time__gte=start_date, date_time__lt=end_date)
+        .annotate(day=TruncDate('date_time'))
+        .values('day')
+        .annotate(max_uv=Max('uv_index'))
+        .order_by('day')
+    )
+
+    results = [
+        {'date': entry['day'].strftime('%Y-%m-%d'), 'max_uv_index': entry['max_uv']}
+        for entry in uv_data
+    ]
+
+    return JsonResponse({'year': year, 'daily_max_uv': results})
