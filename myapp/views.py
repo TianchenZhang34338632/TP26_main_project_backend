@@ -15,7 +15,7 @@ from django.db.models import Avg
 import datetime
 from django.db.models.functions import TruncDate
 from django.db.models import Max
-
+from .models import VicCrimeScore
 @api_view(['GET'])
 def get_postcode_by_coordinate(request):
     try:
@@ -122,6 +122,11 @@ def analyze_accidents(request):
 @api_view(['GET'])
 def get_postcode_scores(request):
     data = VicPostcodeScore.objects.all().values()
+    return JsonResponse(list(data), safe=False)
+
+@api_view(['GET'])
+def get_crime_scores(request):
+    data = VicCrimeScore.objects.all().values()
     return JsonResponse(list(data), safe=False)
 
 @api_view(['GET'])
