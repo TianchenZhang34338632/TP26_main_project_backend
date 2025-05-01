@@ -34,6 +34,7 @@ class VicPostcodeScore(models.Model):
     minor_injuries = models.IntegerField()
     traffic_score = models.FloatField()
     crime_score = models.FloatField()
+    Facility_Count = models.IntegerField()
     class Meta:
         db_table = 'vic_traffic_crime_merge'
         managed = False
@@ -50,7 +51,6 @@ class VicCrimeScore(models.Model):
     Severe_Offence_Rate = models.FloatField()
     Composite_Score = models.FloatField()
     Crime_Score = models.IntegerField()
-    Facility_Count = models.IntegerField()
     class Meta:
         db_table = 'vic_crime_score'
         managed = False
