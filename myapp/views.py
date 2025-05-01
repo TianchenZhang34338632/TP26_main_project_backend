@@ -32,7 +32,8 @@ def get_postcode_by_coordinate(request):
             if polygon.contains(user_point):
                 return JsonResponse({
                     'postcode': area.postcode,
-                    'traffic_score': area.traffic_score
+                    'traffic_score': area.traffic_score,
+                    'crime_score': area.crime_score
                 })
         except Exception as e:
             continue
