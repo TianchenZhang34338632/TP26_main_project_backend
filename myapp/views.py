@@ -16,7 +16,7 @@ from django.db.models.functions import TruncDate
 from django.db.models import Max
 from .models import VicCrimeScore
 from .models import Facility
-
+from django.db.models import Count
 @api_view(['GET'])
 def get_postcode_by_coordinate(request):
     try:
@@ -54,29 +54,42 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 def fetch_accident_data():
-    """Load incident data from database (Django ORM approach)"""
-    with connection.cursor() as cursor:
-        # Search for basic information about the accident
-        cursor.execute("""
-            SELECT a.ACCIDENT_NO, a.SEVERITY, n.LATITUDE, n.LONGITUDE
-            FROM accident_data a
-            JOIN accident_node n ON a.ACCIDENT_NO = n.ACCIDENT_NO
-            WHERE n.LATITUDE IS NOT NULL AND n.LONGITUDE IS NOT NULL
-        """)
-        accidents = cursor.fetchall()
+    """Use Django ORM to load accident data including coordinates and fatalities"""
 
-        # Querying death statistics
-        cursor.execute("""
-            SELECT ACCIDENT_NO, COUNT(*) as deaths
-            FROM accident_person_data
-            WHERE INJ_LEVEL = 1
-            GROUP BY ACCIDENT_NO
-        """)
-        deaths = {row[0]: row[1] for row in cursor.fetchall()}
+    # Get node information with valid coordinates
+    nodes_with_coords = AccidentNode.objects.exclude(latitude=None).exclude(longitude=None)
 
-    # Convert to DataFrame
-    df = pd.DataFrame(accidents, columns=["ACCIDENT_NO", "SEVERITY", "LATITUDE", "LONGITUDE"])
-    df["NO_PERSONS_KILLED"] = df["ACCIDENT_NO"].map(deaths).fillna(0).astype(int)
+    # Get these incident numbers
+    accident_nos = nodes_with_coords.values_list('accident_no', flat=True).distinct()
+
+    # Get basic accident information
+    accident_info = AccidentData.objects.filter(accident_no__in=accident_nos).values(
+        'accident_no', 'severity'
+    )
+
+    # Get the death toll statistics (inj_level=1 means death)
+    deaths = AccidentPersonData.objects.filter(
+        accident_no__in=accident_nos,
+        inj_level=1
+    ).values('accident_no').annotate(deaths=Count('accident_no'))
+    death_dict = {row['accident_no']: row['deaths'] for row in deaths}
+
+    # Integrate into DataFrame
+    node_info = nodes_with_coords.values('accident_no', 'latitude', 'longitude')
+    severity_dict = {item['accident_no']: item['severity'] for item in accident_info}
+
+    data = []
+    for node in node_info:
+        acc_no = node['accident_no']
+        data.append({
+            'ACCIDENT_NO': acc_no,
+            'SEVERITY': severity_dict.get(acc_no),
+            'LATITUDE': node['latitude'],
+            'LONGITUDE': node['longitude'],
+            'NO_PERSONS_KILLED': death_dict.get(acc_no, 0)
+        })
+
+    df = pd.DataFrame(data)
     return df
 
 @api_view(['GET'])
