@@ -42,6 +42,22 @@ class VicPostcodeScore(models.Model):
         # Prevent Django from adding default sorting
         ordering = []
 
+class VicCrimeScore(models.Model):
+    postcode = models.IntegerField(primary_key=True)
+    geometry = models.TextField()
+    Total_Offences = models.IntegerField()
+    Severe_Offences = models.IntegerField()
+    Severe_Offence_Rate = models.FloatField()
+    Composite_Score = models.FloatField()
+    Crime_Score = models.IntegerField()
+    class Meta:
+        db_table = 'vic_crime_score'
+        managed = False
+        # Disable automatic primary keys id
+        auto_created = True
+        # Prevent Django from adding default sorting
+        ordering = []
+
 class UVData(models.Model):
     date_time = models.DateTimeField()
     lat = models.FloatField()
