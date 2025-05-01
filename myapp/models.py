@@ -33,9 +33,9 @@ class VicPostcodeScore(models.Model):
     serious_injuries = models.IntegerField()
     minor_injuries = models.IntegerField()
     traffic_score = models.FloatField()
-
+    crime_score = models.FloatField()
     class Meta:
-        db_table = 'vic_postcode_score'
+        db_table = 'vic_traffic_crime_merge'
         managed = False
         # Disable automatic primary keys id
         auto_created = True
