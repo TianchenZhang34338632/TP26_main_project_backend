@@ -83,3 +83,52 @@ class Facility(models.Model):
     class Meta:
         db_table = 'facilities'
         managed = False
+
+class AccidentData(models.Model):
+    accident_no = models.CharField(max_length=20, primary_key=True)
+    accident_date = models.DateField()
+    accident_time = models.TimeField()
+    accident_type = models.IntegerField()
+    accident_type_desc = models.CharField(max_length=100)
+    day_of_week = models.IntegerField()
+    day_week_desc = models.CharField(max_length=20)
+    dca_code = models.IntegerField()
+    dca_desc = models.CharField(max_length=200)
+    light_condition = models.IntegerField()
+    node_id = models.IntegerField()
+    no_of_vehicles = models.IntegerField()
+    no_persons_killed = models.IntegerField()
+    no_persons_inj_2 = models.IntegerField()
+    no_persons_inj_3 = models.IntegerField()
+    no_persons_not_inj = models.IntegerField()
+    no_persons = models.IntegerField()
+    police_attend = models.IntegerField()
+    road_geometry = models.IntegerField()
+    road_geometry_desc = models.CharField(max_length=50)
+    severity = models.IntegerField()
+    speed_zone = models.IntegerField()
+    rma = models.CharField(max_length=50, null=True)
+
+    class Meta:
+        db_table = 'accident_data'
+        managed = False
+
+class AccidentPersonData(models.Model):
+    accident_no = models.CharField(max_length=20)
+    person_id = models.CharField(max_length=10)
+    vehicle_id = models.CharField(max_length=5)
+    sex = models.CharField(max_length=1)
+    age_group = models.CharField(max_length=20)
+    inj_level = models.IntegerField()
+    inj_level_desc = models.CharField(max_length=50)
+    seating_position = models.CharField(max_length=5)
+    helmet_belt_worn = models.FloatField(null=True)
+    road_user_type = models.IntegerField()
+    road_user_type_desc = models.CharField(max_length=50)
+    licence_state = models.CharField(max_length=5, null=True)
+    taken_hospital = models.CharField(max_length=1, null=True)
+    ejected_code = models.FloatField(null=True)
+
+    class Meta:
+        db_table = 'accident_person_data'
+        managed = False

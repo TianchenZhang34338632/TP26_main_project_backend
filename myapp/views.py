@@ -1,7 +1,7 @@
 
 
 from rest_framework.decorators import api_view
-from .models import AccidentNode
+from .models import AccidentData, AccidentNode, AccidentPersonData
 from geopy.distance import geodesic
 from .models import VicPostcodeScore
 from django.http import JsonResponse
@@ -16,7 +16,7 @@ from django.db.models.functions import TruncDate
 from django.db.models import Max
 from .models import VicCrimeScore
 from .models import Facility
-
+from django.db.models import Count
 @api_view(['GET'])
 def get_postcode_by_coordinate(request):
     try:
@@ -54,31 +54,48 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 def fetch_accident_data():
-    """Load incident data from database (Django ORM approach)"""
-    with connection.cursor() as cursor:
-        # Search for basic information about the accident
-        cursor.execute("""
-            SELECT a.ACCIDENT_NO, a.SEVERITY, n.LATITUDE, n.LONGITUDE
-            FROM accident_data a
-            JOIN accident_node n ON a.ACCIDENT_NO = n.ACCIDENT_NO
-            WHERE n.LATITUDE IS NOT NULL AND n.LONGITUDE IS NOT NULL
-        """)
-        accidents = cursor.fetchall()
+    """Load accident data using Django ORM"""
 
-        # Querying death statistics
-        cursor.execute("""
-            SELECT ACCIDENT_NO, COUNT(*) as deaths
-            FROM accident_person_data
-            WHERE INJ_LEVEL = 1
-            GROUP BY ACCIDENT_NO
-        """)
-        deaths = {row[0]: row[1] for row in cursor.fetchall()}
+    # Get all nodes with valid coordinates
+    nodes = AccidentNode.objects.filter(
+        latitude__isnull=False,
+        longitude__isnull=False
+    )
 
-    # Convert to DataFrame
-    df = pd.DataFrame(accidents, columns=["ACCIDENT_NO", "SEVERITY", "LATITUDE", "LONGITUDE"])
-    df["NO_PERSONS_KILLED"] = df["ACCIDENT_NO"].map(deaths).fillna(0).astype(int)
+    accident_info = []
+
+    # For each node, retrieve corresponding accident details
+    for node in nodes:
+        try:
+            accident = AccidentData.objects.get(accident_no=node.accident_no)
+            accident_info.append([
+                accident.accident_no,
+                accident.severity,
+                node.latitude,
+                node.longitude
+            ])
+        except AccidentData.DoesNotExist:
+            # If accident record does not exist for the node, skip it
+            continue
+
+    # Count number of fatalities (INJ_LEVEL = 1) grouped by accident number
+    death_counts = (
+        AccidentPersonData.objects
+        .filter(inj_level=1)
+        .values('accident_no')
+        .annotate(deaths_count=Count('accident_no'))
+    )
+
+    # Convert to dictionary for fast lookup
+    death_dict = {item['accident_no']: item['deaths_count'] for item in death_counts}
+
+    # Create a pandas DataFrame with the collected data
+    df = pd.DataFrame(accident_info, columns=["ACCIDENT_NO", "SEVERITY", "LATITUDE", "LONGITUDE"])
+
+    # Add NO_PERSONS_KILLED column using the death dictionary
+    df["NO_PERSONS_KILLED"] = df["ACCIDENT_NO"].map(death_dict).fillna(0).astype(int)
+
     return df
-
 @api_view(['GET'])
 def analyze_accidents(request):
     """Analyzing accident data in the vicinity of the coordinates"""
