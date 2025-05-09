@@ -93,7 +93,7 @@ DATABASES = {
         'NAME': 'TP26',               # database name
         'USER': 'tp26',               # user
         'PASSWORD': 'Tp2666666++',    # psw
-        'HOST': '3.27.205.8',         # host
+        'HOST': '52.62.219.71',         # host
         'PORT': '3306',               # port
     }
 }
