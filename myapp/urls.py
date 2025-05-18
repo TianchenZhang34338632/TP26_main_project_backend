@@ -9,5 +9,6 @@ urlpatterns = [
     path('api/get-uv-index/', views.get_uv_index_by_year),
     path('api/crime-scores/', views.get_crime_scores, name='crime_scores'),
     path('api/facilities/', views.facilities_by_postcode, name='facilities'),
-    path('api/four_score/', views.four_score, name='four_score')
+    path('api/four_score/', views.four_score, name='four_score'),
+    path('api/top-postcodes/', views.get_top_postcodes, name='top_postcodes')
 ]

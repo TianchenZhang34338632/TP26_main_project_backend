@@ -311,3 +311,19 @@ def four_score(request):
             continue
 
     return JsonResponse({'error': 'No matching area found'}, status=404)
+
+@api_view(['GET'])
+def get_top_postcodes(request):
+    """
+    Return top 5 postcodes by traffic_score, crime_score, and facility_count from VicPostcodeScore.
+    """
+
+    top_traffic = VicPostcodeScore.objects.all().order_by('-traffic_score')[:5].values('postcode', 'traffic_score')
+    top_crime = VicPostcodeScore.objects.all().order_by('-crime_score')[:5].values('postcode', 'crime_score')
+    top_facility = VicPostcodeScore.objects.all().order_by('-facility_count')[:5].values('postcode', 'facility_count')
+
+    return JsonResponse({
+        "top_traffic_scores": list(top_traffic),
+        "top_crime_scores": list(top_crime),
+        "top_facility_counts": list(top_facility)
+    })
