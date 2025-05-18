@@ -17,6 +17,8 @@ from django.db.models import Max
 from .models import VicCrimeScore
 from .models import Facility
 from django.db.models import Count
+from .models import MergedExploreTable
+from .models import TrafficFeature
 @api_view(['GET'])
 def get_postcode_by_coordinate(request):
     try:
@@ -27,14 +29,27 @@ def get_postcode_by_coordinate(request):
 
     user_point = Point(lng, lat)
 
-    for area in VicPostcodeScore.objects.all():
+    # Loop through each record in MergedExploreTable to find the matching polygon
+    for area in MergedExploreTable.objects.all():
         try:
             polygon = load_wkt(area.geometry)
             if polygon.contains(user_point):
+                # Return all available fields from the MergedExploreTable model
                 return JsonResponse({
                     'postcode': area.postcode,
-                    'traffic_score': area.traffic_score,
-                    'crime_score': area.crime_score,
+                    'total_accidents': area.total_accidents,
+                    'avg_severity': area.avg_severity,
+                    'total_people': area.total_people,
+                    'serious_injuries': area.serious_injuries,
+                    'minor_injuries': area.minor_injuries,
+                    'total_acc_score': area.total_acc_score,
+                    'serious_inj_rate': area.serious_inj_rate,
+                    'serious_inj_score': area.serious_inj_score,
+                    'total_offences': area.total_offences,
+                    'severe_offences': area.severe_offences,
+                    'severe_offence_rate': area.severe_offence_rate,
+                    'total_off_score': area.total_off_score,
+                    'severe_off_score': area.severe_off_score,
                     'facility_count': area.facility_count
                 })
         except Exception as e:
@@ -53,46 +68,6 @@ def haversine(lat1, lon1, lat2, lon2):
     return 6371 * 2 * asin(sqrt(a))
 
 
-def fetch_accident_data():
-    """Use Django ORM to load accident data including coordinates and fatalities"""
-
-    # Get node information with valid coordinates
-    nodes_with_coords = AccidentNode.objects.exclude(latitude=None).exclude(longitude=None)
-
-    # Get these incident numbers
-    accident_nos = nodes_with_coords.values_list('accident_no', flat=True).distinct()
-
-    # Get basic accident information
-    accident_info = AccidentData.objects.filter(accident_no__in=accident_nos).values(
-        'accident_no', 'severity'
-    )
-
-    # Get the death toll statistics (inj_level=1 means death)
-    deaths = AccidentPersonData.objects.filter(
-        accident_no__in=accident_nos,
-        inj_level=1
-    ).values('accident_no').annotate(deaths=Count('accident_no'))
-    death_dict = {row['accident_no']: row['deaths'] for row in deaths}
-
-    # Integrate into DataFrame
-    node_info = nodes_with_coords.values('accident_no', 'latitude', 'longitude')
-    severity_dict = {item['accident_no']: item['severity'] for item in accident_info}
-
-    data = []
-    for node in node_info:
-        acc_no = node['accident_no']
-        data.append({
-            'ACCIDENT_NO': acc_no,
-            'SEVERITY': severity_dict.get(acc_no),
-            'LATITUDE': node['latitude'],
-            'LONGITUDE': node['longitude'],
-            'NO_PERSONS_KILLED': death_dict.get(acc_no, 0)
-        })
-
-    df = pd.DataFrame(data)
-    return df
-
-
 def get_postcode_for_point(lat, lng):
     """Returns the corresponding postcode based on the coordinates"""
     point = Point(lng, lat)
@@ -108,44 +83,51 @@ def get_postcode_for_point(lat, lng):
 
 @api_view(['GET'])
 def analyze_accidents(request):
-    """Analyzing accident data in the vicinity of the coordinates"""
+    """Analyze aggregated traffic data (from TrafficFeature) based on input coordinates"""
     try:
-        # Parse request parameters (format: ?coords=lat1,lon1|lat2,lon2&radius=1.0)
+        # Parse request parameters: ?coords=lat1,lon1|lat2,lon2
         coords = [
             tuple(map(float, point.split(',')))
             for point in request.GET.get('coords', '').split('|')
             if point
         ]
-        radius = float(request.GET.get('radius', 1.0))
 
         if not coords:
             return JsonResponse({"error": "No coordinates provided"}, status=400)
 
-        # Acquire and analyze data
-        accident_df = fetch_accident_data()
         results = []
 
         for lat, lon in coords:
-            # Calculate distance and filter
-            accident_df['distance'] = accident_df.apply(
-                lambda row: haversine(lat, lon, row['LATITUDE'], row['LONGITUDE']),
-                axis=1
-            )
-            nearby = accident_df[accident_df['distance'] <= radius]
+            postcode = get_postcode_for_point(lat, lon)  # Use spatial query to find postcode
+            if postcode is None:
+                results.append({
+                    "coordinate": {"latitude": lat, "longitude": lon},
+                    "error": "No matching postcode found"
+                })
+                continue
 
-
-            postcode = get_postcode_for_point(lat, lon)
-
-            # Statistical indicators
-            stats = {
-                "coordinate": {"latitude": lat, "longitude": lon},
-                "postcode": postcode,
-                "total_accidents": len(nearby),
-                "serious_accidents": len(nearby[nearby["SEVERITY"] == 1]),
-                "total_deaths": int(nearby["NO_PERSONS_KILLED"].sum()),
-                "death_rate": round(nearby["NO_PERSONS_KILLED"].sum() / len(nearby), 4) if len(nearby) > 0 else 0
-            }
-            results.append(stats)
+            try:
+                traffic = TrafficFeature.objects.get(postcode=postcode)
+                # Extract traffic-related stats from TrafficFeature
+                stats = {
+                    "coordinate": {"latitude": lat, "longitude": lon},
+                    "postcode": postcode,
+                    "total_accidents": traffic.total_accidents,
+                    "avg_severity": traffic.avg_severity,
+                    "total_people": traffic.total_people,
+                    "serious_injuries": traffic.serious_injuries,
+                    "minor_injuries": traffic.minor_injuries,
+                    "total_acc_score": traffic.total_acc_score,
+                    "serious_inj_rate": traffic.serious_inj_rate,
+                    "serious_inj_score": traffic.serious_inj_score
+                }
+                results.append(stats)
+            except TrafficFeature.DoesNotExist:
+                results.append({
+                    "coordinate": {"latitude": lat, "longitude": lon},
+                    "postcode": postcode,
+                    "error": "Traffic data not found"
+                })
 
         return JsonResponse({"results": results})
 
@@ -154,13 +136,30 @@ def analyze_accidents(request):
 
 @api_view(['GET'])
 def get_postcode_scores(request):
-    data = VicPostcodeScore.objects.all().values()
+    """
+    Return all metrics and geometry from MergedExploreTable for each postcode.
+    """
+    data = MergedExploreTable.objects.all().values(
+        'postcode',
+        'total_accidents',
+        'avg_severity',
+        'total_people',
+        'serious_injuries',
+        'minor_injuries',
+        'total_acc_score',
+        'serious_inj_rate',
+        'serious_inj_score',
+        'total_offences',
+        'severe_offences',
+        'severe_offence_rate',
+        'total_off_score',
+        'severe_off_score',
+        'facility_count',
+        'geometry'
+    )
+
     return JsonResponse(list(data), safe=False)
 
-@api_view(['GET'])
-def get_crime_scores(request):
-    data = VicCrimeScore.objects.all().values()
-    return JsonResponse(list(data), safe=False)
 
 @api_view(['GET'])
 def get_nearby_accidents(request):

@@ -132,3 +132,55 @@ class AccidentPersonData(models.Model):
     class Meta:
         db_table = 'accident_person_data'
         managed = False
+
+class TrafficFeature(models.Model):
+    postcode = models.IntegerField(primary_key=True)
+    total_accidents = models.IntegerField()
+    avg_severity = models.FloatField()
+    total_people = models.IntegerField()
+    serious_injuries = models.IntegerField()
+    minor_injuries = models.IntegerField()
+    total_acc_score = models.FloatField()
+    serious_inj_rate = models.FloatField()
+    serious_inj_score = models.FloatField()
+    geometry = models.TextField()
+
+    class Meta:
+        db_table = 'traffic_features'
+        managed = False
+
+class CrimeFeature(models.Model):
+    postcode = models.IntegerField(primary_key=True, db_column='Postcode')
+    total_offences = models.IntegerField()
+    severe_offences = models.IntegerField()
+    severe_offence_rate = models.FloatField()
+    total_off_score = models.FloatField()
+    severe_off_score = models.FloatField()
+    geometry = models.TextField()
+
+    class Meta:
+        db_table = 'crime_features'
+        managed = False
+
+class MergedExploreTable(models.Model):
+    postcode = models.IntegerField(primary_key=True)
+    total_accidents = models.IntegerField()
+    avg_severity = models.FloatField()
+    total_people = models.IntegerField()
+    serious_injuries = models.IntegerField()
+    minor_injuries = models.IntegerField()
+    total_acc_score = models.FloatField()
+    serious_inj_rate = models.FloatField()
+    serious_inj_score = models.FloatField()
+    total_offences = models.IntegerField()
+    severe_offences = models.IntegerField()
+    severe_offence_rate = models.FloatField()
+    total_off_score = models.FloatField()
+    severe_off_score = models.FloatField()
+    geometry = models.TextField()
+    geom_polygon = models.TextField()
+    facility_count = models.IntegerField()
+
+    class Meta:
+        db_table = 'merged_explore_table'
+        managed = False
