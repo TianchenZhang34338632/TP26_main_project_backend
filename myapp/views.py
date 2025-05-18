@@ -154,15 +154,41 @@ def analyze_accidents(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 @api_view(['GET'])
-def get_postcode_scores(request):
-    data = VicPostcodeScore.objects.all().values()
+def get_traffic_scores(request):
+    """
+    Return all metrics and geometry from MergedExploreTable for each postcode.
+    """
+    data = MergedExploreTable.objects.all().values(
+        'postcode',
+        'total_accidents',
+        'avg_severity',
+        'total_people',
+        'serious_injuries',
+        'minor_injuries',
+        'total_acc_score',
+        'serious_inj_rate',
+        'serious_inj_score',
+        'geometry'
+    )
+
     return JsonResponse(list(data), safe=False)
 
 @api_view(['GET'])
 def get_crime_scores(request):
-    data = VicCrimeScore.objects.all().values()
+    """
+    Return all metrics and geometry from MergedExploreTable for each postcode.
+    """
+    data = MergedExploreTable.objects.all().values(
+        'postcode',
+        'total_offences',
+        'severe_offences',
+        'severe_offence_rate',
+        'total_off_score',
+        'severe_off_score',
+        'facility_count',
+        'geometry'
+    )
     return JsonResponse(list(data), safe=False)
-
 @api_view(['GET'])
 def get_nearby_accidents(request):
     # Obtain coordinates and range from front end (in kilometers)
