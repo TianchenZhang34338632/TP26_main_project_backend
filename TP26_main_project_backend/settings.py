@@ -98,6 +98,14 @@ DATABASES = {
     }
 }
 
+# Security headers settings
+SECURE_CONTENT_TYPE_NOSNIFF = True  # Sets X-Content-Type-Options: nosniff
+SECURE_REFERRER_POLICY = 'same-origin'  # Sets Referrer-Policy: same-origin
+X_FRAME_OPTIONS = 'DENY'  # Sets X-Frame-Options: DENY
+PERMISSIONS_POLICY = {
+    'camera': 'none',
+    'microphone': 'none',
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
